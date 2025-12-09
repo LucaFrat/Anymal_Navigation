@@ -3,12 +3,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Python module serving as a project/extension template.
-"""
 
-# Register Gym environments.
-from .isaaclab_tasks import *
+"""This sub-module contains the functions that are specific to the Spot locomotion task."""
 
-# Register UI extensions.
-from .ui_extension_example import *
+from .events import *  # noqa: F401, F403
+from .rewards import *  # noqa: F401, F403
