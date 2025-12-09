@@ -17,8 +17,10 @@ from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
 
 import Anymal_Navigation.isaaclab_tasks.manager_based.navigation.mdp as mdp
 from Anymal_Navigation.isaaclab_tasks.manager_based.locomotion.velocity.config.anymal_c.flat_env_cfg import AnymalCFlatEnvCfg
+from Anymal_Navigation.isaaclab_tasks.manager_based.locomotion.velocity.config.anymal_c.rough_env_cfg import AnymalCRoughEnvCfg
 
-LOW_LEVEL_ENV_CFG = AnymalCFlatEnvCfg()
+# LOW_LEVEL_ENV_CFG = AnymalCFlatEnvCfg()
+LOW_LEVEL_ENV_CFG = AnymalCRoughEnvCfg()
 
 
 @configclass
@@ -48,7 +50,9 @@ class ActionsCfg:
 
     pre_trained_policy_action: mdp.PreTrainedPolicyActionCfg = mdp.PreTrainedPolicyActionCfg(
         asset_name="robot",
-        policy_path=f"{ISAACLAB_NUCLEUS_DIR}/Policies/ANYmal-C/Blind/policy.pt",
+        # policy_path=f"{ISAACLAB_NUCLEUS_DIR}/Policies/ANYmal-C/Blind/policy.pt",
+        policy_path=f"{ISAACLAB_NUCLEUS_DIR}/Policies/ANYmal-C/Rough/policy.pt",
+        # policy_path=f"logs/rsl_rl/anymal_c_navigation/2025-12-09_17-15-56/model_400.pt",
         low_level_decimation=4,
         low_level_actions=LOW_LEVEL_ENV_CFG.actions.joint_pos,
         low_level_observations=LOW_LEVEL_ENV_CFG.observations.policy,
@@ -131,7 +135,7 @@ class TerminationsCfg:
 
 
 @configclass
-class MyNavigationEnvCfg(ManagerBasedRLEnvCfg):
+class NavigationEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the navigation environment."""
 
     # environment settings

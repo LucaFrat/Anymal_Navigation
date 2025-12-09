@@ -1,16 +1,32 @@
-# Template for Isaac Lab Projects
+# Hierarchical Navigation for ANYmal-C on Rough Terrain
 
 ## Overview
+This project implements a **Hierarchical Reinforcement Learning (HRL)** framework for the ANYmal-C quadruped in **NVIDIA Isaac Lab**. It moves beyond standard flat-ground navigation by training a high-level planner to navigate complex, rough terrains populated with obstacles, using a pre-trained robust locomotion policy.
 
-This project/repository serves as a template for building projects or extensions based on Isaac Lab.
-It allows you to develop in an isolated environment, outside of the core Isaac Lab repository.
+## Key Achievements
 
-**Key Features:**
+* **Hierarchical Architecture:** Decoupled control into a High-Level Policy (Navigation/Path Planning) and a Low-Level Policy (Robust Rough-Terrain Locomotion).
+* **Rough Terrain Adaptation:** Successfully transferred the navigation task from a flat plane to complex **height-field terrains**, utilizing a locomotion checkpoint specifically trained for uneven ground.
+* **Natural Gait Engineering:** Designed custom reward functions to enforce realistic movement:
+    * **`face_target`:** Eliminates unnatural "strafing" by forcing the robot to orient towards the goal while moving.
+    * **Actuation Penalties:** Minimizes energy usage and "jerkiness" for smoother sim-to-real transfer.
+* **Obstacle Avoidance:** Augmented the environment with static obstacles, training the agent to plan trajectories that avoid collisions while reaching dynamic targets.
 
-- `Isolation` Work outside the core Isaac Lab repository, ensuring that your development efforts remain self-contained.
-- `Flexibility` This template is set up to allow your code to be run as an extension in Omniverse.
+## Technical Details
 
-**Keywords:** extension, template, isaaclab
+### Architecture
+* **Low-Level:** Pre-trained velocity-tracking policy (Robust to noise and terrain irregularities).
+* **High-Level:** Custom PPO policy outputting velocity commands ($v_x, v_y, \omega_z$) based on exteroceptive terrain data and goal relative position.
+
+### Custom Rewards
+Implemented in `rewards.py` to align heading with the target vector:
+```python
+def face_target(env, command_name):
+    # Penalizes the angular difference between robot forward vector and target vector
+    command = env.command_manager.get_command(command_name)
+    target_angle = torch.atan2(command[:, 1], command[:, 0])
+    return torch.abs(target_angle)
+```
 
 ## Installation
 
@@ -43,93 +59,3 @@ It allows you to develop in an isolated environment, outside of the core Isaac L
         # use 'FULL_PATH_TO_isaaclab.sh|bat -p' instead of 'python' if Isaac Lab is not installed in Python venv or conda
         python scripts/<RL_LIBRARY>/train.py --task=<TASK_NAME>
         ```
-
-    - Running a task with dummy agents:
-
-        These include dummy agents that output zero or random agents. They are useful to ensure that the environments are configured correctly.
-
-        - Zero-action agent
-
-            ```bash
-            # use 'FULL_PATH_TO_isaaclab.sh|bat -p' instead of 'python' if Isaac Lab is not installed in Python venv or conda
-            python scripts/zero_agent.py --task=<TASK_NAME>
-            ```
-        - Random-action agent
-
-            ```bash
-            # use 'FULL_PATH_TO_isaaclab.sh|bat -p' instead of 'python' if Isaac Lab is not installed in Python venv or conda
-            python scripts/random_agent.py --task=<TASK_NAME>
-            ```
-
-### Set up IDE (Optional)
-
-To setup the IDE, please follow these instructions:
-
-- Run VSCode Tasks, by pressing `Ctrl+Shift+P`, selecting `Tasks: Run Task` and running the `setup_python_env` in the drop down menu.
-  When running this task, you will be prompted to add the absolute path to your Isaac Sim installation.
-
-If everything executes correctly, it should create a file .python.env in the `.vscode` directory.
-The file contains the python paths to all the extensions provided by Isaac Sim and Omniverse.
-This helps in indexing all the python modules for intelligent suggestions while writing code.
-
-### Setup as Omniverse Extension (Optional)
-
-We provide an example UI extension that will load upon enabling your extension defined in `source/Anymal_Navigation/Anymal_Navigation/ui_extension_example.py`.
-
-To enable your extension, follow these steps:
-
-1. **Add the search path of this project/repository** to the extension manager:
-    - Navigate to the extension manager using `Window` -> `Extensions`.
-    - Click on the **Hamburger Icon**, then go to `Settings`.
-    - In the `Extension Search Paths`, enter the absolute path to the `source` directory of this project/repository.
-    - If not already present, in the `Extension Search Paths`, enter the path that leads to Isaac Lab's extension directory directory (`IsaacLab/source`)
-    - Click on the **Hamburger Icon**, then click `Refresh`.
-
-2. **Search and enable your extension**:
-    - Find your extension under the `Third Party` category.
-    - Toggle it to enable your extension.
-
-## Code formatting
-
-We have a pre-commit template to automatically format your code.
-To install pre-commit:
-
-```bash
-pip install pre-commit
-```
-
-Then you can run pre-commit with:
-
-```bash
-pre-commit run --all-files
-```
-
-## Troubleshooting
-
-### Pylance Missing Indexing of Extensions
-
-In some VsCode versions, the indexing of part of the extensions is missing.
-In this case, add the path to your extension in `.vscode/settings.json` under the key `"python.analysis.extraPaths"`.
-
-```json
-{
-    "python.analysis.extraPaths": [
-        "<path-to-ext-repo>/source/Anymal_Navigation"
-    ]
-}
-```
-
-### Pylance Crash
-
-If you encounter a crash in `pylance`, it is probable that too many files are indexed and you run out of memory.
-A possible solution is to exclude some of omniverse packages that are not used in your project.
-To do so, modify `.vscode/settings.json` and comment out packages under the key `"python.analysis.extraPaths"`
-Some examples of packages that can likely be excluded are:
-
-```json
-"<path-to-isaac-sim>/extscache/omni.anim.*"         // Animation packages
-"<path-to-isaac-sim>/extscache/omni.kit.*"          // Kit UI tools
-"<path-to-isaac-sim>/extscache/omni.graph.*"        // Graph UI tools
-"<path-to-isaac-sim>/extscache/omni.services.*"     // Services tools
-...
-```
