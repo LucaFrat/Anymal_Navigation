@@ -15,8 +15,8 @@ from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
 
-import isaaclab_tasks.manager_based.navigation.mdp as mdp
-from isaaclab_tasks.manager_based.locomotion.velocity.config.anymal_c.flat_env_cfg import AnymalCFlatEnvCfg
+import Anymal_Navigation.isaaclab_tasks.manager_based.navigation.mdp as mdp
+from Anymal_Navigation.isaaclab_tasks.manager_based.locomotion.velocity.config.anymal_c.flat_env_cfg import AnymalCFlatEnvCfg
 
 LOW_LEVEL_ENV_CFG = AnymalCFlatEnvCfg()
 
@@ -87,10 +87,22 @@ class RewardsCfg:
         weight=0.5,
         params={"std": 0.2, "command_name": "pose_command"},
     )
-    orientation_tracking = RewTerm(
-        func=mdp.heading_command_error_abs,
-        weight=-0.2,
-        params={"command_name": "pose_command"},
+    # orientation_tracking = RewTerm(
+    #     func=mdp.heading_command_error_abs,
+    #     weight=-0.2,
+    #     params={"command_name": "pose_command"},
+    # )
+
+    # penalize high velocity commands to encourage efficiency
+    action_l2 = RewTerm(func=mdp.action_l2, weight=-0.01)
+
+    # penalize jerky command changes
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05)
+
+    face_target = RewTerm(
+        func=mdp.face_target,
+        weight= -0.1,
+        params={"command_name": "pose_command"}
     )
 
 
@@ -119,7 +131,7 @@ class TerminationsCfg:
 
 
 @configclass
-class NavigationEnvCfg(ManagerBasedRLEnvCfg):
+class MyNavigationEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the navigation environment."""
 
     # environment settings
@@ -148,13 +160,13 @@ class NavigationEnvCfg(ManagerBasedRLEnvCfg):
             self.scene.contact_forces.update_period = self.sim.dt
 
 
-class NavigationEnvCfg_PLAY(NavigationEnvCfg):
-    def __post_init__(self) -> None:
-        # post init of parent
-        super().__post_init__()
+# class NavigationEnvCfg_PLAY(NavigationEnvCfg):
+#     def __post_init__(self) -> None:
+#         # post init of parent
+#         super().__post_init__()
 
-        # make a smaller scene for play
-        self.scene.num_envs = 50
-        self.scene.env_spacing = 2.5
-        # disable randomization for play
-        self.observations.policy.enable_corruption = False
+#         # make a smaller scene for play
+#         self.scene.num_envs = 50
+#         self.scene.env_spacing = 2.5
+#         # disable randomization for play
+#         self.observations.policy.enable_corruption = False
