@@ -77,7 +77,7 @@ import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
-import Anymal_Navigation.tasks  # noqa: F401
+import Anymal_Navigation.isaaclab_tasks  # noqa: F401
 
 
 @hydra_task_config(args_cli.task, args_cli.agent)
