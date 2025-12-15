@@ -22,7 +22,6 @@ from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
-from isaaclab.sensors import ContactSensorCfg
 
 import Anymal_Navigation.tasks.manager_based.locomotion.velocity.mdp as mdp
 
@@ -30,7 +29,7 @@ import Anymal_Navigation.tasks.manager_based.locomotion.velocity.mdp as mdp
 # Pre-defined configs
 ##
 from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
-
+from Anymal_Navigation.tasks.manager_based.locomotion.velocity.mdp.myTerrainCfg import MY_TERRAIN_CFG
 
 ##
 # Scene definition
@@ -45,8 +44,8 @@ class MySceneCfg(InteractiveSceneCfg):
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
         terrain_type="generator",
-        terrain_generator=ROUGH_TERRAINS_CFG,
-        max_init_terrain_level=5,
+        terrain_generator=MY_TERRAIN_CFG,
+        max_init_terrain_level=2,
         collision_group=-1,
         physics_material=sim_utils.RigidBodyMaterialCfg(
             friction_combine_mode="multiply",
@@ -64,14 +63,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # robots
     robot: ArticulationCfg = MISSING
     # sensors
-    height_scanner = (
-        prim_path="{ENV_REGEX_NS}/Robot/base",
-        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
-        ray_alignment="yaw",
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),
-        debug_vis=False,
-        mesh_prim_paths=["/World/ground"],
-    )
+
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
     # lights
     sky_light = AssetBaseCfg(
@@ -82,30 +74,41 @@ class MySceneCfg(InteractiveSceneCfg):
         ),
     )
 
-    cone = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/Cone",
-        spawn=sim_utils.ConeCfg(
-            radius=0.2,
-            height=0.5,
-            axis="Z",
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
+    # cone = RigidObjectCfg(
+    #     prim_path="{ENV_REGEX_NS}/Cone",
+    #     spawn=sim_utils.ConeCfg(
+    #         radius=0.2,
+    #         height=0.5,
+    #         axis="Z",
+    #         visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
+    #         # Collision and Rigid Body properties are required for physical interaction
+    #         collision_props=sim_utils.CollisionPropertiesCfg(),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
+    #             rigid_body_enabled=True,
+    #             solver_position_iteration_count=4,
+    #         ),
+    #         mass_props=sim_utils.MassPropertiesCfg(mass=10.0),
+    #     ),
+    #     init_state=RigidObjectCfg.InitialStateCfg(pos=(2.0, 0.0, 0.25)),
+    # )
 
-            collision_props=sim_utils.CollisionPropertiesCfg(),
-
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(),
-            mass_props=sim_utils.MassPropertiesCfg(mass=10.0),
-        ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(2.0, 0.0, 0.25)),
+    # 4. LiDAR (RayCaster)
+    # Replaces 'height_scanner' for obstacle detection
+    height_scanner = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
+        ray_alignment="yaw",
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),
+        debug_vis=True,
+        mesh_prim_paths=["/World/ground"],
     )
 
-    contact_forces_cone = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/.*",
-        history_length=1,
-        track_air_time=False,
-        # error: Filter pattern '/World/envs/env_*/Cone' did
-        # not match the correct number of entries (expected 69632, found 4096)
-        filter_prim_paths_expr=["{ENV_REGEX_NS}/Cone"],
-    )
+    # contact_forces_cone = ContactSensorCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/base",
+    #     history_length=1,
+    #     track_air_time=False,
+    #     filter_prim_paths_expr=["{ENV_REGEX_NS}/Cone"],
+    # )
 
 
 ##
@@ -225,12 +228,12 @@ class EventCfg:
         params={
             "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
             "velocity_range": {
-                "x": (-0.5, 0.5),
-                "y": (-0.5, 0.5),
-                "z": (-0.5, 0.5),
-                "roll": (-0.5, 0.5),
-                "pitch": (-0.5, 0.5),
-                "yaw": (-0.5, 0.5),
+                "x": (-0.0, 0.0),
+                "y": (-0.0, 0.0),
+                "z": (-0.0, 0.0),
+                "roll": (-0.0, 0.0),
+                "pitch": (-0.0, 0.0),
+                "yaw": (-0.0, 0.0),
             },
         },
     )

@@ -82,7 +82,7 @@ class ObservationsCfg:
 class RewardsCfg:
     """Reward terms for the MDP."""
 
-    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-400.0)
 
     position_tracking = RewTerm(
         func=mdp.position_command_error_tanh,
@@ -92,7 +92,7 @@ class RewardsCfg:
 
     position_tracking_fine_grained = RewTerm(
         func=mdp.position_command_error_tanh,
-        weight=0.5,
+        weight=0.2,
         params={"std": 0.2, "command_name": "pose_command"},
     )
 
@@ -102,11 +102,11 @@ class RewardsCfg:
     #     params={"command_name": "pose_command"},
     # )
     cone_collision = RewTerm(
-        func=mdp.undesired_contacts, # Standard function: 0 if no contact, -1 if contact
-        weight=-0.2,                 # Penalty value
+        func=mdp.undesired_contacts,
+        weight=-0.1,
         params={
-            "sensor_cfg": SceneEntityCfg("contact_forces_cone"), # Must match the name in MySceneCfg
-            "threshold": 1,        # Trigger only if force > 0.1N (ignores tiny ghost touches)
+            "sensor_cfg": SceneEntityCfg("contact_forces_cone"),
+            "threshold": 0.2,
         },
     )
 
@@ -132,7 +132,7 @@ class CommandsCfg:
         simple_heading=False,
         resampling_time_range=(8.0, 8.0),
         debug_vis=True,
-        ranges=mdp.UniformPose2dCommandCfg.Ranges(pos_x=(-3.0, 3.0), pos_y=(-3.0, 3.0), heading=(-math.pi, math.pi)),
+        ranges=mdp.UniformPose2dCommandCfg.Ranges(pos_x=(-4.0, 4.0), pos_y=(-4.0, 4.0), heading=(-math.pi, math.pi)),
     )
 
 

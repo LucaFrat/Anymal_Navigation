@@ -14,6 +14,8 @@ from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.utils import configclass
+from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
+
 
 import Anymal_Navigation.tasks.manager_based.navigation.mdp as mdp
 from Anymal_Navigation.tasks.manager_based.locomotion.velocity.config.anymal_c.rough_env_cfg import AnymalCRoughEnvCfg
@@ -30,14 +32,14 @@ class EventCfg:
         func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
-            "pose_range": {"x": (-0.2, 0.2), "y": (-0.2, 0.2), "yaw": (-3.14, 3.14)},
+            "pose_range": {"x": (-0.3, 0.3), "y": (-0.3, 0.3), "yaw": (-3.14, 3.14)},
             "velocity_range": {
-                "x": (-0.0, 0.0),
-                "y": (-0.0, 0.0),
-                "z": (-0.0, 0.0),
-                "roll": (-0.0, 0.0),
-                "pitch": (-0.0, 0.0),
-                "yaw": (-0.0, 0.0),
+                "x": (-0.5, 0.5),
+                "y": (-0.5, 0.5),
+                "z": (-0.5, 0.5),
+                "roll": (-0.5, 0.5),
+                "pitch": (-0.5, 0.5),
+                "yaw": (-0.5, 0.5),
             },
         },
     )
@@ -49,7 +51,7 @@ class ActionsCfg:
 
     pre_trained_policy_action: mdp.PreTrainedPolicyActionCfg = mdp.PreTrainedPolicyActionCfg(
         asset_name="robot",
-        policy_path="source/Anymal_Navigation/Anymal_Navigation/tasks/manager_based/navigation/config/anymal_c/agents/policy.pt",
+        policy_path="logs/rsl_rl/anymal_c_rough/2025-12-15_13-20-18/exported/policy.pt",
         low_level_decimation=4,
         low_level_actions=LOW_LEVEL_ENV_CFG.actions.joint_pos,
         low_level_observations=LOW_LEVEL_ENV_CFG.observations.policy,
@@ -68,6 +70,12 @@ class ObservationsCfg:
         base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
         projected_gravity = ObsTerm(func=mdp.projected_gravity)
         pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "pose_command"})
+        height_scan = ObsTerm(
+            func=mdp.height_scan,
+            params={"sensor_cfg": SceneEntityCfg("height_scanner")},
+            noise=Unoise(n_min=-0.1, n_max=0.1),
+            clip=(-1.0, 1.0),
+        )
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
@@ -77,17 +85,17 @@ class ObservationsCfg:
 class RewardsCfg:
     """Reward terms for the MDP."""
 
-    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-400.0)
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
 
     position_tracking = RewTerm(
         func=mdp.position_command_error_tanh,
-        weight=0.5,
+        weight=5.0,
         params={"std": 2.0, "command_name": "pose_command"},
     )
 
     position_tracking_fine_grained = RewTerm(
         func=mdp.position_command_error_tanh,
-        weight=0.5,
+        weight=1.0,
         params={"std": 0.2, "command_name": "pose_command"},
     )
 
@@ -98,10 +106,10 @@ class RewardsCfg:
     )
 
     # penalize high velocity commands to encourage efficiency
-    # action_l2 = RewTerm(func=mdp.action_l2, weight=-0.05)
+    # action_l2 = RewTerm(func=mdp.action_l2, weight=-0.001)
 
     # penalize jerky command changes
-    # action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05)
+    # action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
 
     # face_target = RewTerm(
     #     func=mdp.face_target,
@@ -119,7 +127,7 @@ class CommandsCfg:
         simple_heading=False,
         resampling_time_range=(8.0, 8.0),
         debug_vis=True,
-        ranges=mdp.UniformPose2dCommandCfg.Ranges(pos_x=(-3.0, 3.0), pos_y=(-3.0, 3.0), heading=(-math.pi, math.pi)),
+        ranges=mdp.UniformPose2dCommandCfg.Ranges(pos_x=(-2.0, 2.0), pos_y=(-2.0, 2.0), heading=(-math.pi, math.pi)),
     )
 
 
@@ -138,12 +146,19 @@ class TerminationsCfg:
 class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
-    terrain_levels = CurrTerm(
-        func=mdp.terrain_levels_progress,
+    # terrain_levels = CurrTerm(
+    #     func=mdp.terrain_levels_progress,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot"),
+    #         "command_name": "pose_command",
+    #     },
+    # )
+    goal_distance = CurrTerm(
+        func=mdp.distance_level,
         params={
             "asset_cfg": SceneEntityCfg("robot"),
             "command_name": "pose_command",
-        },
+        }
     )
 
 
@@ -160,7 +175,7 @@ class NavigationRoughEnvCfg(ManagerBasedRLEnvCfg):
     commands: CommandsCfg = CommandsCfg()
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
-    # curriculum: CurriculumCfg = CurriculumCfg()
+    curriculum: CurriculumCfg = CurriculumCfg()
 
 
     def __post_init__(self):
@@ -172,19 +187,17 @@ class NavigationRoughEnvCfg(ManagerBasedRLEnvCfg):
         self.episode_length_s = self.commands.pose_command.resampling_time_range[1]
 
         if self.scene.height_scanner is not None:
-            self.scene.height_scanner.update_period = (
-                self.actions.pre_trained_policy_action.low_level_decimation * self.sim.dt
-            )
+            self.scene.height_scanner.update_period = self.decimation * self.sim.dt
         if self.scene.contact_forces is not None:
             self.scene.contact_forces.update_period = self.sim.dt
 
 
-        if getattr(self.curriculum, "terrain_levels", None) is not None:
-            if self.scene.terrain.terrain_generator is not None:
-                self.scene.terrain.terrain_generator.curriculum = True
-        else:
-            if self.scene.terrain.terrain_generator is not None:
-                self.scene.terrain.terrain_generator.curriculum = False
+        # if getattr(self.curriculum, "terrain_levels", None) is not None:
+        #     if self.scene.terrain.terrain_generator is not None:
+        #         self.scene.terrain.terrain_generator.curriculum = True
+        # else:
+        #     if self.scene.terrain.terrain_generator is not None:
+        #         self.scene.terrain.terrain_generator.curriculum = False
 
 
 # class NavigationEnvCfg_PLAY(NavigationEnvCfg):
