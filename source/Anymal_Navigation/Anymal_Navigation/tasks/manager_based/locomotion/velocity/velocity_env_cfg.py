@@ -17,7 +17,7 @@ from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
+from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns, CameraCfg
 from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
@@ -29,6 +29,7 @@ import Anymal_Navigation.tasks.manager_based.locomotion.velocity.mdp as mdp
 # Pre-defined configs
 ##
 from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
+# from isaaclab.terrains.config.flat import FLAT_TERRAINS_CFG
 from Anymal_Navigation.tasks.manager_based.locomotion.velocity.mdp.myTerrainCfg import MY_TERRAIN_CFG
 
 ##
@@ -45,7 +46,7 @@ class MySceneCfg(InteractiveSceneCfg):
         prim_path="/World/ground",
         terrain_type="generator",
         terrain_generator=ROUGH_TERRAINS_CFG,
-        max_init_terrain_level=2,
+        max_init_terrain_level=5,
         collision_group=-1,
         physics_material=sim_utils.RigidBodyMaterialCfg(
             friction_combine_mode="multiply",
@@ -74,23 +75,23 @@ class MySceneCfg(InteractiveSceneCfg):
         ),
     )
 
-    # cone = RigidObjectCfg(
-    #     prim_path="{ENV_REGEX_NS}/Cone",
-    #     spawn=sim_utils.ConeCfg(
-    #         radius=0.2,
-    #         height=0.5,
-    #         axis="Z",
-    #         visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
-    #         # Collision and Rigid Body properties are required for physical interaction
-    #         collision_props=sim_utils.CollisionPropertiesCfg(),
-    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
-    #             rigid_body_enabled=True,
-    #             solver_position_iteration_count=4,
-    #         ),
-    #         mass_props=sim_utils.MassPropertiesCfg(mass=10.0),
-    #     ),
-    #     init_state=RigidObjectCfg.InitialStateCfg(pos=(2.0, 0.0, 0.25)),
-    # )
+    cone = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/Cone",
+        spawn=sim_utils.ConeCfg(
+            radius=0.4,
+            height=1.0,
+            axis="Z",
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
+            # Collision and Rigid Body properties are required for physical interaction
+            collision_props=sim_utils.CollisionPropertiesCfg(),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                rigid_body_enabled=True,
+                solver_position_iteration_count=4,
+            ),
+            mass_props=sim_utils.MassPropertiesCfg(mass=100.0),
+        ),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(2.0, 0.0, 1.0)),
+    )
 
     # 4. LiDAR (RayCaster)
     # Replaces 'height_scanner' for obstacle detection
@@ -101,6 +102,19 @@ class MySceneCfg(InteractiveSceneCfg):
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),
         debug_vis=True,
         mesh_prim_paths=["/World/ground"],
+    )
+
+    camera = CameraCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base/camera",
+        update_period=0.1, # 10Hz
+        height=120,
+        width=160,
+        debug_vis=True,
+        data_types=["rgb", "distance_to_image_plane"],
+        spawn=sim_utils.PinholeCameraCfg(
+            focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 20.0)
+        ),
+        offset=CameraCfg.OffsetCfg(pos=(-0.4, 0.0, 0.1), rot=(0.5, -0.5, -0.5, 0.5), convention="ros"),
     )
 
     # contact_forces_cone = ContactSensorCfg(
@@ -178,6 +192,20 @@ class ObservationsCfg:
 @configclass
 class EventCfg:
     """Configuration for events."""
+
+    reset_cone_pos = EventTerm(
+        func=mdp.reset_root_state_uniform,
+        mode="reset",  # Randomize on every reset (or use "startup" for once-only)
+        params={
+            "asset_cfg": SceneEntityCfg("cone"), # Must match the name in MySceneCfg
+            "pose_range": {
+                "x": (-2.0, 2.0),  # Randomize X between -2m and 2m
+                "y": (-2.0, 2.0),  # Randomize Y between -2m and 2m
+                "yaw": (-3.14, 3.14) # Randomize rotation
+            },
+            "velocity_range": {}, # Start with zero velocity
+        },
+    )
 
     # startup
     physics_material = EventTerm(
@@ -320,7 +348,7 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the locomotion velocity-tracking environment."""
 
     # Scene settings
-    scene = MySceneCfg(num_envs=4096, env_spacing=2.5)
+    scene = MySceneCfg(num_envs=128, env_spacing=2.5)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()

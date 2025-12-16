@@ -19,15 +19,24 @@ from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 import Anymal_Navigation.tasks.manager_based.navigation.mdp as mdp
 from Anymal_Navigation.tasks.manager_based.locomotion.velocity.config.anymal_c.rough_env_cfg import AnymalCRoughEnvCfg
+from Anymal_Navigation.tasks.manager_based.locomotion.velocity.config.anymal_c.flat_env_cfg import AnymalCFlatEnvCfg
 
 
-LOW_LEVEL_ENV_CFG = AnymalCRoughEnvCfg()
+# LOW_LEVEL_ENV_CFG = AnymalCRoughEnvCfg()
+LOW_LEVEL_ENV_CFG = AnymalCFlatEnvCfg()
 
 
 @configclass
 class EventCfg:
     """Configuration for events."""
-
+    reset_cone_pos = EventTerm(
+        func=mdp.reset_cone_pos_donut,
+        mode="reset",  # Randomize on every reset (or use "startup" for once-only)
+        params={
+            "asset_cfg": SceneEntityCfg("cone"), # Must match the name in MySceneCfg
+            "radius_range": (1.0, 2.5),
+        },
+    )
     reset_base = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
@@ -76,6 +85,10 @@ class ObservationsCfg:
             noise=Unoise(n_min=-0.1, n_max=0.1),
             clip=(-1.0, 1.0),
         )
+        # visual_features = ObsTerm(
+        #     func=mdp.visual_latent,
+        #     params={"sensor_cfg": SceneEntityCfg("camera")},
+        # )
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
@@ -209,6 +222,7 @@ class NavigationRoughEnvCfg(ManagerBasedRLEnvCfg):
             self.scene.height_scanner.update_period = self.decimation * self.sim.dt
         if self.scene.contact_forces is not None:
             self.scene.contact_forces.update_period = self.sim.dt
+        self.scene.terrain.max_init_terrain_level = None
 
 
         # if getattr(self.curriculum, "terrain_levels", None) is not None:
