@@ -5,21 +5,21 @@
 
 """Configuration for custom terrains."""
 
-import isaaclab.terrains as terrain_gen, TerrainGeneratorCfg
-
+import isaaclab.terrains as terrain_gen
+from isaaclab.terrains import TerrainGeneratorCfg
 
 MY_TERRAIN_CFG = TerrainGeneratorCfg(
     size=(8.0, 8.0),
     border_width=20.0,
-    num_rows=10,
-    num_cols=20,
+    num_rows=8,
+    num_cols=8,
     horizontal_scale=0.1,
     vertical_scale=0.005,
     slope_threshold=0.75,
     use_cache=False,
     sub_terrains={
         "pyramid_stairs": terrain_gen.MeshPyramidStairsTerrainCfg(
-            proportion=0.2,
+            proportion=0.4,
             step_height_range=(0.05, 0.23),
             step_width=0.3,
             platform_width=3.0,
@@ -27,7 +27,7 @@ MY_TERRAIN_CFG = TerrainGeneratorCfg(
             holes=False,
         ),
         "pyramid_stairs_inv": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
-            proportion=0.2,
+            proportion=0.6,
             step_height_range=(0.05, 0.23),
             step_width=0.3,
             platform_width=3.0,

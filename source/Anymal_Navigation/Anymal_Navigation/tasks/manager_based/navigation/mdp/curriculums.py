@@ -103,13 +103,13 @@ def distance_level(
     move_up = torch.mean(1.0*((dist_to_goal < (0.3 * total_mission_dist))))
     # if covered less than 20% of the distance
     move_down = torch.mean(1.0 * (dist_from_start < (0.2 * total_mission_dist)))
-    print(f"UP - DOWN: {move_up - move_down}")
+    # print(f"UP - DOWN: {move_up - move_down}")
 
     mean_level_increment = move_up - move_down
     pose_command = env.command_manager.get_term(command_name)
 
     pos_x = pose_command.cfg.ranges.pos_x
-    new_pos_x_abs = torch.clamp(torch.tensor(pos_x[1] + mean_level_increment*0.01), min=1.0, max=4.0)
+    new_pos_x_abs = torch.clamp(torch.tensor(pos_x[1] + mean_level_increment*0.01), min=1.0, max=5.0)
     pose_command.cfg.ranges.pos_x = (-new_pos_x_abs, new_pos_x_abs)
     pose_command.cfg.ranges.pos_y = (-new_pos_x_abs, new_pos_x_abs)
 

@@ -90,13 +90,19 @@ class RewardsCfg:
     position_tracking = RewTerm(
         func=mdp.position_command_error_tanh,
         weight=5.0,
-        params={"std": 2.0, "command_name": "pose_command"},
+        params={"std": 2.0,
+                "command_name": "pose_command",
+                "asset_cfg": SceneEntityCfg("robot"),
+        },
     )
 
     position_tracking_fine_grained = RewTerm(
         func=mdp.position_command_error_tanh,
         weight=1.0,
-        params={"std": 0.2, "command_name": "pose_command"},
+        params={"std": 0.2,
+                "command_name": "pose_command",
+                "asset_cfg": SceneEntityCfg("robot"),
+        },
     )
 
     orientation_tracking = RewTerm(
@@ -106,7 +112,7 @@ class RewardsCfg:
     )
 
     # penalize high velocity commands to encourage efficiency
-    # action_l2 = RewTerm(func=mdp.action_l2, weight=-0.001)
+    action_l2 = RewTerm(func=mdp.action_l2, weight=-0.001)
 
     # penalize jerky command changes
     # action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
@@ -127,8 +133,21 @@ class CommandsCfg:
         simple_heading=False,
         resampling_time_range=(8.0, 8.0),
         debug_vis=True,
-        ranges=mdp.UniformPose2dCommandCfg.Ranges(pos_x=(-2.0, 2.0), pos_y=(-2.0, 2.0), heading=(-math.pi, math.pi)),
+        ranges=mdp.UniformPose2dCommandCfg.Ranges(pos_x=(-5.0, 5.0), pos_y=(-5.0, 5.0), heading=(-math.pi, math.pi)),
     )
+    # pose_command = mdp.UniformPoseCommandCfg(
+    #     asset_name="robot",
+    #     body_name="base",
+    #     resampling_time_range=(8.0, 8.0),
+    #     debug_vis=True,
+    #     ranges=mdp.UniformPoseCommandCfg.Ranges(
+    #         pos_x=(-2.0, 2.0),
+    #         pos_y=(-2.0, 2.0),
+    #         pos_z=(1.0, 1.1),
+    #         roll=(0.0, 0.0),
+    #         pitch=(0.0, 0.0),
+    #         yaw=(-math.pi, math.pi)),
+    # )
 
 
 @configclass
@@ -200,13 +219,13 @@ class NavigationRoughEnvCfg(ManagerBasedRLEnvCfg):
         #         self.scene.terrain.terrain_generator.curriculum = False
 
 
-# class NavigationEnvCfg_PLAY(NavigationEnvCfg):
-#     def __post_init__(self) -> None:
-#         # post init of parent
-#         super().__post_init__()
+class NavigationEnvCfg_PLAY(NavigationRoughEnvCfg):
+    def __post_init__(self) -> None:
+        # post init of parent
+        super().__post_init__()
 
-#         # make a smaller scene for play
-#         self.scene.num_envs = 50
-#         self.scene.env_spacing = 2.5
-#         # disable randomization for play
-#         self.observations.policy.enable_corruption = False
+        # make a smaller scene for play
+        self.scene.num_envs = 50
+        self.scene.env_spacing = 2.5
+        # disable randomization for play
+        self.observations.policy.enable_corruption = False

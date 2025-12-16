@@ -12,14 +12,16 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
 class NavigationEnvPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 8
     max_iterations = 1500
-    save_interval = 50
+    save_interval = 100
     experiment_name = "anymal_c_navigation"
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=0.5,
         actor_obs_normalization=False,
         critic_obs_normalization=False,
-        actor_hidden_dims=[128, 128],
-        critic_hidden_dims=[128, 128],
+        # actor_hidden_dims=[128, 128],
+        actor_hidden_dims=[512, 256],
+        # critic_hidden_dims=[128, 128],
+        critic_hidden_dims=[512, 256],
         activation="elu",
     )
     algorithm = RslRlPpoAlgorithmCfg(
