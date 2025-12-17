@@ -11,7 +11,7 @@ class VAEEncoder(nn.Module):
             nn.Conv2d(32, 64, 4, stride=2), nn.ReLU(),
             nn.Conv2d(64, 128, 4, stride=2), nn.ReLU(),
             nn.Flatten(),
-            nn.Linear(128 * 13 * 18, latent_dim), # input_image = (64*96)
+            nn.Linear(128 * 6 * 8, latent_dim), # input_image = (64*96)
             nn.Tanh() # keeps [-1, 1], good for PPO
         )
 

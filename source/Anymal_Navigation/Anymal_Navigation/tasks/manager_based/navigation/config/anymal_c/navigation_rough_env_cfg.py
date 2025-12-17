@@ -22,8 +22,8 @@ from Anymal_Navigation.tasks.manager_based.locomotion.velocity.config.anymal_c.r
 from Anymal_Navigation.tasks.manager_based.locomotion.velocity.config.anymal_c.flat_env_cfg import AnymalCFlatEnvCfg
 
 
-# LOW_LEVEL_ENV_CFG = AnymalCRoughEnvCfg()
-LOW_LEVEL_ENV_CFG = AnymalCFlatEnvCfg()
+LOW_LEVEL_ENV_CFG = AnymalCRoughEnvCfg()
+# LOW_LEVEL_ENV_CFG = AnymalCFlatEnvCfg()
 
 
 @configclass
@@ -85,10 +85,10 @@ class ObservationsCfg:
             noise=Unoise(n_min=-0.1, n_max=0.1),
             clip=(-1.0, 1.0),
         )
-        # visual_features = ObsTerm(
-        #     func=mdp.visual_latent,
-        #     params={"sensor_cfg": SceneEntityCfg("camera")},
-        # )
+        visual_features = ObsTerm(
+            func=mdp.visual_latent,
+            params={"sensor_cfg": SceneEntityCfg("camera")},
+        )
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()

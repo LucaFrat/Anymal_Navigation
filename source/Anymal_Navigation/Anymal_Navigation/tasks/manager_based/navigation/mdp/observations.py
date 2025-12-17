@@ -28,9 +28,9 @@ def visual_latent(env, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
     # Also normalize 0-255 to 0.0-1.0
     images = images.permute(0, 3, 1, 2).float() / 255.0
 
-    save_image(images[0])
-    save_image(images[1])
-    save_image(images[2])
+    # save_image(images[0])
+    # save_image(images[1])
+    # save_image(images[2])
 
     with torch.no_grad():
         latents = encoder(images)
@@ -41,7 +41,7 @@ def visual_latent(env, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
 def save_image(image):
     save_dir = "debug_images"
     os.makedirs(save_dir, exist_ok=True)
-    num = random.randint(1, 100)
+    num = random.randint(1, 1000)
     filename = os.path.join(save_dir, f"step_{num:03d}.png")
     vutils.save_image(image, filename)
     print(f"Saved {filename}")
