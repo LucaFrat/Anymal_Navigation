@@ -6,7 +6,7 @@ This project implements a **Hierarchical Reinforcement Learning (HRL)** framewor
 <table>
   <tr>
     <td width="100%">
-      <video src="media/rl-video-step-10000.mp4" controls="controls" style="max-width: 100%;">
+      <video src="https://github.com/LucaFrat/Anymal_Navigation/blob/master/media/rl-video-step-10000.mp4" controls="controls" style="max-width: 100%;">
       </video>
     </td>
   </tr>
@@ -14,11 +14,12 @@ This project implements a **Hierarchical Reinforcement Learning (HRL)** framewor
 <table>
   <tr>
     <td width="50%">
-      <video src="media/Navigation_Flat_single.mp4" controls="controls" style="max-width: 100%;">
+      <video src="https://github.com/LucaFrat/Anymal_Navigation/blob/master/media/Navigation_Flat_single.mp4"
+      controls="controls" style="max-width: 100%;">
       </video>
     </td>
     <td width="50%">
-      <video src="media/Navigation_Rough_single.mp4" controls="controls" style="max-width: 100%;">
+      <video src="https://github.com/LucaFrat/Anymal_Navigation/blob/master/media/Navigation_Rough_single.mp4" controls="controls" style="max-width: 100%;">
       </video>
     </td>
   </tr>
