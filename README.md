@@ -3,10 +3,10 @@
 ## Overview
 This project implements a **Hierarchical Reinforcement Learning (HRL)** framework for the ANYmal-C quadruped in **NVIDIA Isaac Lab**. It moves beyond standard flat-ground navigation by training a high-level planner to navigate complex, rough terrains populated with obstacles, using a pre-trained robust locomotion policy.
 
-<table>
+<!-- <table>
   <tr>
     <td width="100%">
-      <video src="https://github.com/LucaFrat/Anymal_Navigation/blob/master/media/rl-video-step-10000.mp4" controls="controls" style="max-width: 100%;">
+      <video src="media/rl-video-step-10000.gif" style="max-width: 100%;">
       </video>
     </td>
   </tr>
@@ -14,16 +14,32 @@ This project implements a **Hierarchical Reinforcement Learning (HRL)** framewor
 <table>
   <tr>
     <td width="50%">
-      <video src="https://github.com/LucaFrat/Anymal_Navigation/blob/master/media/Navigation_Flat_single.mp4"
-      controls="controls" style="max-width: 100%;">
+      <video src="media/Navigation_Flat_single.gif" style="max-width: 100%;">
       </video>
     </td>
     <td width="50%">
-      <video src="https://github.com/LucaFrat/Anymal_Navigation/blob/master/media/Navigation_Rough_single.mp4" controls="controls" style="max-width: 100%;">
+      <video src="media/Navigation_Rough_single.gif" style="max-width: 100%;">
       </video>
     </td>
   </tr>
+</table> -->
+
+
+<table>
+  <tr>
+    <td align="center" width="40%">
+      <img src="media/Navigation_Flat_single.gif" alt="Training Stage 1" />
+      <!-- <br /> -->
+    </td>
+    <td align="center" width="40%">
+      <img src="media/Navigation_Rough_single.gif" alt="Training Stage 2" />
+      <!-- <br /> -->
+    </td>
+  </tr>
 </table>
+<p align="center">
+  <img src="media/rl-video-step-10000.gif" width="60%" alt="Final Policy Demo" />
+</p>
 
 ## Key Achievements
 
