@@ -18,10 +18,10 @@ class NavigationEnvPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         init_noise_std=0.5,
         actor_obs_normalization=False,
         critic_obs_normalization=False,
-        # actor_hidden_dims=[128, 128],
-        actor_hidden_dims=[512, 256],
-        # critic_hidden_dims=[128, 128],
-        critic_hidden_dims=[512, 256],
+        actor_hidden_dims=[128, 128],
+        # actor_hidden_dims=[512, 256],
+        critic_hidden_dims=[128, 128],
+        # critic_hidden_dims=[512, 256],
         activation="elu",
     )
     algorithm = RslRlPpoAlgorithmCfg(

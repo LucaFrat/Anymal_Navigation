@@ -78,7 +78,7 @@ class MySceneCfg(InteractiveSceneCfg):
     cone = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Cone",
         spawn=sim_utils.ConeCfg(
-            radius=0.4,
+            radius=0.2,
             height=1.0,
             axis="Z",
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
@@ -86,7 +86,7 @@ class MySceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 rigid_body_enabled=True,
-                solver_position_iteration_count=4,
+                solver_position_iteration_count=2,
             ),
             mass_props=sim_utils.MassPropertiesCfg(mass=100.0),
         ),
@@ -100,22 +100,22 @@ class MySceneCfg(InteractiveSceneCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         ray_alignment="yaw",
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),
-        debug_vis=True,
+        debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
 
-    camera = TiledCameraCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/base/camera",
-        update_period=5, # 10Hz
-        height=64,
-        width=80,
-        debug_vis=False,
-        data_types=["rgb", "distance_to_image_plane"],
-        spawn=sim_utils.PinholeCameraCfg(
-            focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 8.0)
-        ),
-        offset=CameraCfg.OffsetCfg(pos=(-0.4, 0.0, 0.1), rot=(0.5, -0.5, -0.5, 0.5), convention="ros"),
-    )
+    # camera = TiledCameraCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/base/camera",
+    #     update_period=5, # 10Hz
+    #     height=64,
+    #     width=80,
+    #     debug_vis=False,
+    #     data_types=["rgb", "distance_to_image_plane"],
+    #     spawn=sim_utils.PinholeCameraCfg(
+    #         focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 8.0)
+    #     ),
+    #     offset=CameraCfg.OffsetCfg(pos=(-0.4, 0.0, 0.1), rot=(0.5, -0.5, -0.5, 0.5), convention="ros"),
+    # )
 
     # contact_forces_cone = ContactSensorCfg(
     #     prim_path="{ENV_REGEX_NS}/Robot/base",
@@ -193,19 +193,19 @@ class ObservationsCfg:
 class EventCfg:
     """Configuration for events."""
 
-    reset_cone_pos = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",  # Randomize on every reset (or use "startup" for once-only)
-        params={
-            "asset_cfg": SceneEntityCfg("cone"), # Must match the name in MySceneCfg
-            "pose_range": {
-                "x": (-2.0, 2.0),  # Randomize X between -2m and 2m
-                "y": (-2.0, 2.0),  # Randomize Y between -2m and 2m
-                "yaw": (-3.14, 3.14) # Randomize rotation
-            },
-            "velocity_range": {}, # Start with zero velocity
-        },
-    )
+    # reset_cone_pos = EventTerm(
+    #     func=mdp.reset_root_state_uniform,
+    #     mode="reset",  # Randomize on every reset (or use "startup" for once-only)
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("cone"), # Must match the name in MySceneCfg
+    #         "pose_range": {
+    #             "x": (-2.0, 2.0),  # Randomize X between -2m and 2m
+    #             "y": (-2.0, 2.0),  # Randomize Y between -2m and 2m
+    #             "yaw": (-3.14, 3.14) # Randomize rotation
+    #         },
+    #         "velocity_range": {}, # Start with zero velocity
+    #     },
+    # )
 
     # startup
     physics_material = EventTerm(
@@ -348,7 +348,7 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the locomotion velocity-tracking environment."""
 
     # Scene settings
-    scene = MySceneCfg(num_envs=128, env_spacing=2.5)
+    scene = MySceneCfg(num_envs=4096, env_spacing=2.5)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()

@@ -80,21 +80,17 @@ def distance_level(
     ) -> torch.Tensor:
 
     asset = env.scene[asset_cfg.name]
-    root_pos_w = asset.data.root_pos_w[env_ids, :2]  # XY position in World
+    root_pos_w = asset.data.root_pos_w[env_ids, :2]
 
-    # get the Goal Position (from the episode that just finished)
     cmd_term = env.command_manager.get_term(command_name)
 
-    # Safety check: ensure the command term has the world position attribute
     if not hasattr(cmd_term, "pos_command_w"):
         return env.scene.terrain.terrain_levels[env_ids]
 
     target_pos_w = cmd_term.pos_command_w[env_ids, :2]
 
-    # assumes the robot spawns relatively close to the origin (0,0) of its env instance
     start_pos_w = env.scene.env_origins[env_ids, :2]
 
-    # calculate distances
     total_mission_dist = torch.norm(target_pos_w - start_pos_w, dim=1)
     dist_to_goal = torch.norm(target_pos_w - root_pos_w, dim=1)
     dist_from_start = torch.norm(root_pos_w - start_pos_w, dim=1)
@@ -109,10 +105,62 @@ def distance_level(
     pose_command = env.command_manager.get_term(command_name)
 
     pos_x = pose_command.cfg.ranges.pos_x
-    new_pos_x_abs = torch.clamp(torch.tensor(pos_x[1] + mean_level_increment*0.01), min=1.0, max=5.0)
-    pose_command.cfg.ranges.pos_x = (-new_pos_x_abs, new_pos_x_abs)
-    pose_command.cfg.ranges.pos_y = (-new_pos_x_abs, new_pos_x_abs)
+    current_val = pos_x[1]
+    new_val = current_val + mean_level_increment * 0.01
 
-    return torch.tensor(pose_command.cfg.ranges.pos_x[1])
+    # Clamp the tensor
+    new_pos_x_abs = torch.clamp(new_val, min=4.0, max=6.0)
 
+    # convert to standard Python float for the config
+    new_limit = new_pos_x_abs.item()
+
+    # Update config with floats
+    pose_command.cfg.ranges.pos_x = (-new_limit, new_limit)
+    pose_command.cfg.ranges.pos_y = (-new_limit, new_limit)
+
+    return new_pos_x_abs
+
+
+
+def obstacle_angle_level(
+    env: "ManagerBasedRLEnv",
+    env_ids: torch.Tensor,
+    command_name: str = "pose_command",
+) -> torch.Tensor:
+    """
+    Curriculum that decreases the goal offset angle as the robot improves.
+    Starts at high angle (easy), goes to 0 (hard).
+    """
+
+    cmd_term = env.command_manager.get_term(command_name)
+    asset = env.scene["robot"]
+
+    target_pos_w = cmd_term.pos_command_w[env_ids, :2]
+    root_pos_w = asset.data.root_pos_w[env_ids, :2]
+    start_pos_w = env.scene.env_origins[env_ids, :2]
+
+    total_dist = torch.norm(target_pos_w - start_pos_w, dim=1)
+    current_dist = torch.norm(target_pos_w - root_pos_w, dim=1)
+
+    # Success: Remaining distance is < 20% of total (Robot reached goal)
+    is_success = current_dist < (0.2 * total_dist)
+    success_rate = torch.mean(is_success.float())
+
+    # Get current max angle
+    current_max_angle = cmd_term.cfg.goal_pose_angle_range[1]
+
+    # Simple Logic:
+    # If success rate > 70%, decrease angle by 0.05 radians
+    # If success rate < 40%, increase angle by 0.01 radians (make easier)
+
+    if success_rate > 0.7:
+        new_angle = max(0.0, current_max_angle - 0.05)
+    elif success_rate < 0.4:
+        new_angle = min(1.57, current_max_angle + 0.01)
+    else:
+        new_angle = current_max_angle
+
+    cmd_term.cfg.goal_pose_angle_range = (-new_angle, new_angle)
+
+    return torch.tensor(new_angle)
 

@@ -21,6 +21,8 @@ from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
 
 import Anymal_Navigation.tasks.manager_based.navigation.mdp as mdp
 from Anymal_Navigation.tasks.manager_based.locomotion.velocity.config.anymal_c.flat_env_cfg import AnymalCFlatEnvCfg
+import Anymal_Navigation.tasks.manager_based.navigation.mdp.commands as obstacle_cmd
+
 
 LOW_LEVEL_ENV_CFG = AnymalCFlatEnvCfg()
 
@@ -31,6 +33,15 @@ LOW_LEVEL_ENV_CFG = AnymalCFlatEnvCfg()
 class EventCfg:
     """Configuration for events."""
 
+    reset_cone_pos = EventTerm(
+        func=mdp.reset_cone_pos_donut,
+        mode="reset",
+        # min_step_count_between_reset=50_000,
+        params={
+            "asset_cfg": SceneEntityCfg("cone"), # Must match the name in MySceneCfg
+            "radius_range": (1.5, 2.0),
+        },
+    )
     reset_base = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
@@ -74,6 +85,14 @@ class ObservationsCfg:
         projected_gravity = ObsTerm(func=mdp.projected_gravity)
         pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "pose_command"})
 
+        cone_pos = ObsTerm(
+            func=mdp.cone_position_b,
+            params={
+                "robot_cfg": SceneEntityCfg("robot"),
+                "cone_cfg": SceneEntityCfg("cone"),
+            },
+        )
+
     # observation groups
     policy: PolicyCfg = PolicyCfg()
 
@@ -101,13 +120,19 @@ class RewardsCfg:
     #     weight=-0.2,
     #     params={"command_name": "pose_command"},
     # )
-    cone_collision = RewTerm(
-        func=mdp.undesired_contacts,
-        weight=-0.1,
+    cone_too_close = RewTerm(
+        func=mdp.cone_proximity_penalty,
+        weight=-1.0,
         params={
-            "sensor_cfg": SceneEntityCfg("contact_forces_cone"),
-            "threshold": 0.2,
+            "robot_cfg": SceneEntityCfg("robot"),
+            "cone_cfg": SceneEntityCfg("cone"),
+            "threshold": 0.4, # If closer than 0.6m, start penalizing
         },
+    )
+    progress = RewTerm(
+        func=mdp.progress_toward_goal,
+        weight=0.5, # Positive signal for moving in the right direction
+        params={"command_name": "pose_command"},
     )
 
     # penalize high velocity commands to encourage efficiency
@@ -127,13 +152,17 @@ class RewardsCfg:
 class CommandsCfg:
     """Command terms for the MDP."""
 
-    pose_command = mdp.UniformPose2dCommandCfg(
+    pose_command = obstacle_cmd.ObstacleBlockedPoseCommandCfg(
         asset_name="robot",
+        obstacle_cfg=SceneEntityCfg("cone"),
         simple_heading=False,
         resampling_time_range=(8.0, 8.0),
         debug_vis=True,
-        ranges=mdp.UniformPose2dCommandCfg.Ranges(pos_x=(-4.0, 4.0), pos_y=(-4.0, 4.0), heading=(-math.pi, math.pi)),
+        goal_distance_behind_obstacle=(1.0, 2.0),
+        goal_pose_angle_range=(-1.507, 1.507),
+        ranges=mdp.UniformPose2dCommandCfg.Ranges(pos_x=(-3.0, 3.0), pos_y=(-3.0, 3.0), heading=(-math.pi, math.pi)),
     )
+
 
 
 @configclass
@@ -146,9 +175,20 @@ class TerminationsCfg:
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
     )
 
-# @configclass
-# class CurriculumCfg:
-#     """Curriculum terms for the MDP."""
+@configclass
+class CurriculumCfg:
+    """Curriculum terms for the MDP."""
+    goal_distance = CurrTerm(
+        func=mdp.distance_level,
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "command_name": "pose_command",
+        }
+    )
+    obstacle_angle = CurrTerm(
+        func=mdp.obstacle_angle_level,
+        params={"command_name": "pose_command"},
+    )
 
 
 
@@ -165,7 +205,7 @@ class NavigationFlatEnvCfg(ManagerBasedRLEnvCfg):
     commands: CommandsCfg = CommandsCfg()
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
-    # curriculum: CurriculumCfg = CurriculumCfg()
+    curriculum: CurriculumCfg = CurriculumCfg()
 
 
     def __post_init__(self):
@@ -184,13 +224,13 @@ class NavigationFlatEnvCfg(ManagerBasedRLEnvCfg):
             self.scene.contact_forces.update_period = self.sim.dt
 
 
-# class NavigationEnvCfg_PLAY(NavigationEnvCfg):
-#     def __post_init__(self) -> None:
-#         # post init of parent
-#         super().__post_init__()
+class NavigationEnvCfg_PLAY(NavigationFlatEnvCfg):
+    def __post_init__(self) -> None:
+        # post init of parent
+        super().__post_init__()
 
-#         # make a smaller scene for play
-#         self.scene.num_envs = 50
-#         self.scene.env_spacing = 2.5
-#         # disable randomization for play
-#         self.observations.policy.enable_corruption = False
+        # make a smaller scene for play
+        self.scene.num_envs = 1
+        self.scene.env_spacing = 2.5
+        # disable randomization for play
+        self.observations.policy.enable_corruption = False

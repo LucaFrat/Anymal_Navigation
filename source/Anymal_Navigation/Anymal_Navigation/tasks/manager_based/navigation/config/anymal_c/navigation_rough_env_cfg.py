@@ -19,11 +19,10 @@ from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 import Anymal_Navigation.tasks.manager_based.navigation.mdp as mdp
 from Anymal_Navigation.tasks.manager_based.locomotion.velocity.config.anymal_c.rough_env_cfg import AnymalCRoughEnvCfg
-from Anymal_Navigation.tasks.manager_based.locomotion.velocity.config.anymal_c.flat_env_cfg import AnymalCFlatEnvCfg
+import Anymal_Navigation.tasks.manager_based.navigation.mdp.commands as obstacle_cmd
 
 
 LOW_LEVEL_ENV_CFG = AnymalCRoughEnvCfg()
-# LOW_LEVEL_ENV_CFG = AnymalCFlatEnvCfg()
 
 
 @configclass
@@ -31,10 +30,11 @@ class EventCfg:
     """Configuration for events."""
     reset_cone_pos = EventTerm(
         func=mdp.reset_cone_pos_donut,
-        mode="reset",  # Randomize on every reset (or use "startup" for once-only)
+        mode="reset",
+        # min_step_count_between_reset=50_000,
         params={
             "asset_cfg": SceneEntityCfg("cone"), # Must match the name in MySceneCfg
-            "radius_range": (1.0, 2.5),
+            "radius_range": (1.5, 2.0),
         },
     )
     reset_base = EventTerm(
@@ -79,15 +79,22 @@ class ObservationsCfg:
         base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
         projected_gravity = ObsTerm(func=mdp.projected_gravity)
         pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "pose_command"})
-        height_scan = ObsTerm(
-            func=mdp.height_scan,
-            params={"sensor_cfg": SceneEntityCfg("height_scanner")},
-            noise=Unoise(n_min=-0.1, n_max=0.1),
-            clip=(-1.0, 1.0),
-        )
-        visual_features = ObsTerm(
-            func=mdp.visual_latent,
-            params={"sensor_cfg": SceneEntityCfg("camera")},
+        # height_scan = ObsTerm(
+        #     func=mdp.height_scan,
+        #     params={"sensor_cfg": SceneEntityCfg("height_scanner")},
+        #     noise=Unoise(n_min=-0.1, n_max=0.1),
+        #     clip=(-1.0, 1.0),
+        # )
+        # visual_features = ObsTerm(
+        #     func=mdp.visual_latent,
+        #     params={"sensor_cfg": SceneEntityCfg("camera")},
+        # )
+        cone_pos = ObsTerm(
+            func=mdp.cone_position_b,
+            params={
+                "robot_cfg": SceneEntityCfg("robot"),
+                "cone_cfg": SceneEntityCfg("cone"),
+            },
         )
 
     # observation groups
@@ -118,15 +125,29 @@ class RewardsCfg:
         },
     )
 
-    orientation_tracking = RewTerm(
-        func=mdp.heading_command_error_abs,
-        weight=-0.2,
-        params={"command_name": "pose_command"},
-    )
+    # orientation_tracking = RewTerm(
+    #     func=mdp.heading_command_error_abs,
+    #     weight=-0.2,
+    #     params={"command_name": "pose_command"},
+    # )
 
     # penalize high velocity commands to encourage efficiency
-    action_l2 = RewTerm(func=mdp.action_l2, weight=-0.001)
+    # action_l2 = RewTerm(func=mdp.action_l2, weight=-0.001)
 
+    cone_too_close = RewTerm(
+        func=mdp.cone_proximity_penalty,
+        weight=-5.0,
+        params={
+            "robot_cfg": SceneEntityCfg("robot"),
+            "cone_cfg": SceneEntityCfg("cone"),
+            "threshold": 0.6, # If closer than 0.6m, start penalizing
+        },
+    )
+    progress = RewTerm(
+        func=mdp.progress_toward_goal,
+        weight=0.5, # Positive signal for moving in the right direction
+        params={"command_name": "pose_command"},
+    )
     # penalize jerky command changes
     # action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
 
@@ -141,26 +162,23 @@ class RewardsCfg:
 class CommandsCfg:
     """Command terms for the MDP."""
 
-    pose_command = mdp.UniformPose2dCommandCfg(
+    # pose_command = mdp.UniformPose2dCommandCfg(
+    #     asset_name="robot",
+    #     simple_heading=False,
+    #     resampling_time_range=(8.0, 8.0),
+    #     debug_vis=True,
+    #     ranges=mdp.UniformPose2dCommandCfg.Ranges(pos_x=(-2.0, 2.0), pos_y=(-2.0, 2.0), heading=(-math.pi, math.pi)),
+    # )
+    pose_command = obstacle_cmd.ObstacleBlockedPoseCommandCfg(
         asset_name="robot",
+        obstacle_cfg=SceneEntityCfg("cone"),
         simple_heading=False,
         resampling_time_range=(8.0, 8.0),
         debug_vis=True,
-        ranges=mdp.UniformPose2dCommandCfg.Ranges(pos_x=(-5.0, 5.0), pos_y=(-5.0, 5.0), heading=(-math.pi, math.pi)),
+        goal_distance_behind_obstacle=(1.0, 2.0),
+        goal_pose_angle_range=(-1.507, 1.507),
+        ranges=mdp.UniformPose2dCommandCfg.Ranges(pos_x=(-3.0, 3.0), pos_y=(-3.0, 3.0), heading=(-math.pi, math.pi)),
     )
-    # pose_command = mdp.UniformPoseCommandCfg(
-    #     asset_name="robot",
-    #     body_name="base",
-    #     resampling_time_range=(8.0, 8.0),
-    #     debug_vis=True,
-    #     ranges=mdp.UniformPoseCommandCfg.Ranges(
-    #         pos_x=(-2.0, 2.0),
-    #         pos_y=(-2.0, 2.0),
-    #         pos_z=(1.0, 1.1),
-    #         roll=(0.0, 0.0),
-    #         pitch=(0.0, 0.0),
-    #         yaw=(-math.pi, math.pi)),
-    # )
 
 
 @configclass
@@ -178,19 +196,16 @@ class TerminationsCfg:
 class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
-    # terrain_levels = CurrTerm(
-    #     func=mdp.terrain_levels_progress,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot"),
-    #         "command_name": "pose_command",
-    #     },
-    # )
     goal_distance = CurrTerm(
         func=mdp.distance_level,
         params={
             "asset_cfg": SceneEntityCfg("robot"),
             "command_name": "pose_command",
         }
+    )
+    obstacle_angle = CurrTerm(
+        func=mdp.obstacle_angle_level,
+        params={"command_name": "pose_command"},
     )
 
 
@@ -223,14 +238,6 @@ class NavigationRoughEnvCfg(ManagerBasedRLEnvCfg):
         if self.scene.contact_forces is not None:
             self.scene.contact_forces.update_period = self.sim.dt
         self.scene.terrain.max_init_terrain_level = None
-
-
-        # if getattr(self.curriculum, "terrain_levels", None) is not None:
-        #     if self.scene.terrain.terrain_generator is not None:
-        #         self.scene.terrain.terrain_generator.curriculum = True
-        # else:
-        #     if self.scene.terrain.terrain_generator is not None:
-        #         self.scene.terrain.terrain_generator.curriculum = False
 
 
 class NavigationEnvCfg_PLAY(NavigationRoughEnvCfg):

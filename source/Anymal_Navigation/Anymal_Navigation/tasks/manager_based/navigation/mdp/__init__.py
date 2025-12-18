@@ -13,3 +13,4 @@ from .curriculums import *
 from .vision_encoder import *
 from .observations import *
 from .events import *
+from .commands import *
