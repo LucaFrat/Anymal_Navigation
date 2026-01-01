@@ -19,28 +19,31 @@ This project implements a **Hierarchical Reinforcement Learning (HRL)** framewor
 
 ## Key Achievements
 
-* **Hierarchical Architecture:** Decoupled control into a High-Level Policy (Navigation/Path Planning) and a Low-Level Policy (Robust Rough-Terrain Locomotion).
-* **Rough Terrain Adaptation:** Successfully transferred the navigation task from a flat plane to complex **height-field terrains**, utilizing a locomotion checkpoint specifically trained for uneven ground.
-* **Natural Gait Engineering:** Designed custom reward functions to enforce realistic movement:
-    * **`face_target`:** Eliminates unnatural "strafing" by forcing the robot to orient towards the goal while moving.
-    * **Actuation Penalties:** Minimizes energy usage and "jerkiness" for smoother sim-to-real transfer.
-* **Obstacle Avoidance:** Augmented the environment with static obstacles, training the agent to plan trajectories that avoid collisions while reaching dynamic targets.
+* **Hierarchical Architecture:** Decoupled control into a High-Level Navigation Policy and a Low-Level Locomotion Policy.
+* **Rough Terrain Adaptation:** Successfully transferred navigation tasks to complex height-field terrains using a locomotion checkpoint trained for uneven ground.
+* **Custom Goal Generation:** Developed the `ObstacleBlockedPoseCommand` to force the agent to circumvent obstacles by placing targets directly behind them relative to the robot's position.
+* **Curriculum Learning:** Implemented multi-stage curricula for both goal distance and obstacle difficulty to stabilize training.
 
 ## Technical Details
 
 ### Architecture
-* **Low-Level:** Pre-trained velocity-tracking policy (Robust to noise and terrain irregularities).
-* **High-Level:** Custom PPO policy outputting velocity commands ($v_x, v_y, \omega_z$) based on exteroceptive terrain data and goal relative position.
+* **Low-Level Policy:** A pre-trained blind locomotion policy responsible for maintaining balance and tracking velocity commands ($v_x, v_y, \omega_z$) on various terrains.
+* **High-Level Policy:** A PPO-based navigation agent that observes the goal position and obstacle data to output high-level velocity commands to the locomotion policy.
+
+### Obstacle-Blocked Command Logic
+The `ObstacleBlockedPoseCommand` ensures interaction with obstacles by resampling goals based on the obstacle's location:
+1.  **Vector Calculation:** Computes the vector from the robot to the obstacle (e.g., a cone).
+2.  **Goal Placement:** Samples a target position at a specified distance range behind the obstacle along that vector, ensuring the robot must navigate around it to succeed.
+3.  **Angular Curriculum:** Features an angular offset that starts wide (to allow a clear path) and decreases over time as the robot improves, forcing it to pass increasingly closer to the obstacle.
+
+### Curriculum Learning
+* **Distance Curriculum:** Dynamically increases the maximum goal distance (from 2m up to 6m) based on the agent's success rate.
+* **Angle Curriculum:** Gradually reduces the goal's angular offset relative to the obstacle, intensifying the avoidance requirement as training progresses.
+* **Terrain Curriculum:** Progresses through terrain levels as the robot demonstrates the ability to reach goals efficiently.
 
 ### Custom Rewards
-Implemented in `rewards.py` to align heading with the target vector:
-```python
-def face_target(env, command_name):
-    # Penalizes the angular difference between robot forward vector and target vector
-    command = env.command_manager.get_command(command_name)
-    target_angle = torch.atan2(command[:, 1], command[:, 0])
-    return torch.abs(target_angle)
-```
+* **`face_target`:** Penalizes the angular difference between the robot's forward vector and the target vector to eliminate unnatural "strafing".
+* **`cone_proximity_penalty`:** Provides a negative reward if the robot's distance to the obstacle falls below a threshold (e.g., 0.6m).
 
 ## Installation
 
